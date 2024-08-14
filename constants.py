@@ -1,0 +1,2 @@
+PCAP_DIR = "PCAP/"
+IP_PREFIX = "192.168.0."
