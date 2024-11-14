@@ -6,7 +6,15 @@ import time
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+import pandas as pd
 
+protocol_mapping = {
+    1: "ICMP",
+    6: "TCP",
+    17: "UDP",
+    27: "RDP",
+    132: "SCTP"
+}
 
 def main():
     print("Hello World!")
@@ -80,6 +88,52 @@ def open_pcap(name):
     print("Opening PCAP file: " + name)
     cap = PcapReader(name)
     return cap
+
+
+
+def create_csv(_pcap):
+    #pkt["TCP"].time = time -> int() to convert 
+    #Number
+    #pkt["IP"].src = source
+    #pkt["IP"].dst = destination
+    #pkt["IP"].proto = protocol ???? #https://www.iana.org/assignments/protocol-numbers/protocol-numbers.xhtml
+    #pkt["IP"].len = length
+    #pkt.load = info
+    columns = ["Time", "No", "Source", "Destination", "Protocol", "Length", "Load"]
+    df = pd.DataFrame(columns=columns)
+
+    try:
+        cap = open_pcap(_pcap)
+    except NameError:
+        print("Error: current_cap is not defined.")
+    start = time.process_time()
+    for pckt in cap:
+        #if pckt.haslayer(IP):
+        pckt_data = process_pckt(pckt)
+        df = pd.concat([df, pd.DataFrame([pckt_data])], ignore_index=True)
+
+    
+    df.to_csv("test.csv", index=False)
+    print("Packet information saved to packets_info.csv")
+    print("Time taken to process packets: " + str(time.process_time() - start))
+
+
+def process_pckt(_pckt):
+    pckt_data = {
+        "Time": _pckt.time,
+        "Number": "...",
+        "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else None,
+        "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else None,
+        "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else None,
+        "Length": _pckt["IP"].len if _pckt.haslayer('IP') else None,
+        "Load": _pckt["Raw"].load if _pckt.haslayer('Raw') else None
+    }
+    print(pckt_data)
+    return pckt_data
+
+def get_protocol_name(protocol_number):
+    return protocol_mapping.get(protocol_number, "Unknown")
+
 
 
 if __name__ == "__main__":
