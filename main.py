@@ -91,7 +91,7 @@ def open_pcap(name):
 
 
 
-def create_csv(_pcap):
+def create_csv_(_pcap):
     #pkt["TCP"].time = time -> int() to convert 
     #Number
     #pkt["IP"].src = source
@@ -107,9 +107,11 @@ def create_csv(_pcap):
     except NameError:
         print("Error: current_cap is not defined.")
     start = time.process_time()
+    pkt_no = 0
     for pckt in cap:
-        #if pckt.haslayer(IP):
+        pkt_no += 1
         pckt_data = process_pckt(pckt)
+        print(pkt_no)
         df = pd.concat([df, pd.DataFrame([pckt_data])], ignore_index=True)
 
     
@@ -117,11 +119,39 @@ def create_csv(_pcap):
     print("Packet information saved to packets_info.csv")
     print("Time taken to process packets: " + str(time.process_time() - start))
 
+def create_csv2(_pcap):
+
+    columns = ["Time", "No", "SourceIP", "DestinationIP", "Protocol", "Length", "Load"]
+    packet_data_list = []  # List to store packet data
+
+    try:
+        cap = open_pcap(_pcap)
+    except NameError:
+        print("Error: open_pcap function is not defined.")
+        return
+
+    start = time.process_time()
+    pkt_no = 0
+
+    for pckt in cap:
+        pkt_no += 1
+        pckt_data = process_pckt(pckt)  # Function to process individual packets
+        pckt_data["No"] = pkt_no  # Add packet number to the data
+        packet_data_list.append(pckt_data)  # Collect packet data in the list
+        print(pkt_no)
+
+    # Create the DataFrame after collecting all data
+    df = pd.DataFrame(packet_data_list, columns=columns)
+    df.to_csv("test.csv", index=False)
+
+    print(f"Processing time: {time.process_time() - start:.2f}s")
+    return df
+
 
 def process_pckt(_pckt):
     pckt_data = {
         "Time": _pckt.time,
-        "Number": "...",
+        "No": "",
         "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else None,
         "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else None,
         "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else None,

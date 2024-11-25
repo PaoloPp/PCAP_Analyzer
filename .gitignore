@@ -6,3 +6,4 @@ PCAP
 share
 pyvenv.cfg
 lib/*
+test.csv
