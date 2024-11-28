@@ -4,6 +4,7 @@ import os
 import constants as c
 import time
 import smtplib
+import base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import pandas as pd
@@ -121,7 +122,9 @@ def create_csv_(_pcap):
 
 def create_csv2(_pcap):
 
-    columns = ["Time", "No", "SourceIP", "DestinationIP", "Protocol", "Length", "Load"]
+    columns = ["Time", "No", "SourceIP", "DestinationIP",
+               "SourcePort", "DestinationPort", "SequenceNumber", "AcknowledgementNumber",
+               "Protocol", "Length", "Load"]
     packet_data_list = []  # List to store packet data
 
     try:
@@ -147,6 +150,47 @@ def create_csv2(_pcap):
     print(f"Processing time: {time.process_time() - start:.2f}s")
     return df
 
+def create_csv3(_pcap, output_csv):
+    columns = ["Time", "No", "SourceIP", "DestinationIP",
+               "SourcePort", "DestinationPort", "SequenceNumber", "AcknowledgementNumber",
+               "Protocol", "Length", "Load"]
+
+    # Open output CSV and write headers
+    with open(output_csv, 'w') as f:
+        pd.DataFrame(columns=columns).to_csv(f, index=False)
+
+    try:
+        cap = PcapReader(_pcap)  # Use PcapReader for streaming packets
+    except FileNotFoundError:
+        print("Error: File not found.")
+        return
+
+    start = time.process_time()
+    pkt_no = 0
+
+    try:
+        chunk = []  # Buffer to store rows temporarily
+        chunk_size = 1000  # Adjust based on memory
+        for pckt in cap:
+            pkt_no += 1
+            pckt_data = process_pckt(pckt)
+            pckt_data["No"] = pkt_no
+            chunk.append(pckt_data)
+
+            if len(chunk) >= chunk_size:
+                # Write chunk to CSV
+                pd.DataFrame(chunk).to_csv(output_csv, mode='a', index=False, header=False)
+                chunk = []  # Clear buffer
+
+            if pkt_no % 10000 == 0:  # Periodic logging
+                print(f"Processed {pkt_no} packets")
+
+        # Write remaining packets in the buffer
+        if chunk:
+            pd.DataFrame(chunk).to_csv(output_csv, mode='a', index=False, header=False)
+    finally:
+        cap.close()  # Ensure file is properly closed
+
 
 def process_pckt(_pckt):
     pckt_data = {
@@ -154,9 +198,13 @@ def process_pckt(_pckt):
         "No": "",
         "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else None,
         "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else None,
+        "SourcePort": _pckt["TCP"].sport if _pckt.haslayer('TCP') else None,
+        "DestinationPort": _pckt["TCP"].dport if _pckt.haslayer('TCP') else None,
+        "SequenceNumber": _pckt["TCP"].seq if _pckt.haslayer('TCP') else None,
+        "AcknowledgementNumber": _pckt["TCP"].ack if _pckt.haslayer('TCP') else None,
         "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else None,
         "Length": _pckt["IP"].len if _pckt.haslayer('IP') else None,
-        "Load": _pckt["Raw"].load if _pckt.haslayer('Raw') else None
+        "Load": base64.b64encode(_pckt["Raw"].load) if _pckt.haslayer('Raw') else None
     }
     print(pckt_data)
     return pckt_data
