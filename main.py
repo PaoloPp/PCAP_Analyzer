@@ -193,20 +193,35 @@ def create_csv3(_pcap, output_csv):
 
 
 def process_pckt(_pckt):
-    pckt_data = {
-        "Time": _pckt.time,
-        "No": "",
-        "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else None,
-        "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else None,
-        "SourcePort": _pckt["TCP"].sport if _pckt.haslayer('TCP') else None,
-        "DestinationPort": _pckt["TCP"].dport if _pckt.haslayer('TCP') else None,
-        "SequenceNumber": _pckt["TCP"].seq if _pckt.haslayer('TCP') else None,
-        "AcknowledgementNumber": _pckt["TCP"].ack if _pckt.haslayer('TCP') else None,
-        "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else None,
-        "Length": _pckt["IP"].len if _pckt.haslayer('IP') else None,
-        "Load": base64.b64encode(_pckt["Raw"].load) if _pckt.haslayer('Raw') else None
-    }
-    print(pckt_data)
+    pckt_data = {}
+    if _pckt.haslayer('TCP'):
+        pckt_data = {
+            "Time": int(_pckt.time),
+            "No": "",
+            "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else None,
+            "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else None,
+            "SourcePort": _pckt["TCP"].sport if _pckt.haslayer('TCP') else None,
+            "DestinationPort": _pckt["TCP"].dport if _pckt.haslayer('TCP') else None,
+            "SequenceNumber": _pckt["TCP"].seq if _pckt.haslayer('TCP') else None,
+            "AcknowledgementNumber": _pckt["TCP"].ack if _pckt.haslayer('TCP') else None,
+            "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else None,
+            "Length": _pckt["IP"].len if _pckt.haslayer('IP') else None,
+            "Load": base64.b64encode(_pckt["Raw"].load) if _pckt.haslayer('Raw') else None
+        }
+    elif _pckt.haslayer('UDP'):
+        pckt_data = {
+            "Time": int(_pckt.time),
+            "No": "",
+            "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else None,
+            "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else None,
+            "SourcePort": _pckt["UDP"].sport if _pckt.haslayer('UDP') else None,
+            "DestinationPort": _pckt["UDP"].dport if _pckt.haslayer('UDP') else None,
+            #"AcknowledgementNumber": _pckt["UDP"].ack if _pckt.haslayer('UDP') else None,
+            "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else None,
+            "Length": _pckt["IP"].len if _pckt.haslayer('IP') else None,
+            "Load": base64.b64encode(_pckt["Raw"].load) if _pckt.haslayer('Raw') else None
+        }
+    #print(pckt_data)
     return pckt_data
 
 def get_protocol_name(protocol_number):
