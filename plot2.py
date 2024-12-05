@@ -1,48 +1,69 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 
-def plot_sourceip_destport(csv_file, source_ip, dest_port):
+def plot_top_associations(input_csv, associations_csv, start_time, end_time):
     """
-    Plot network data for a specific SourceIP-DestPort pair chronologically with fine time resolution.
+    Plot network data for the top 5 associations chronologically within a user-defined time interval,
+    aggregating packets by the minute.
 
     Parameters:
-    - csv_file: Path to the CSV file containing network data.
-    - source_ip: Source IP to filter by.
-    - dest_port: Destination port to filter by.
+    - input_csv: Path to the CSV file containing network data.
+    - associations_csv: Path to the CSV file with sorted associations.
+    - start_time: Start of the time interval (epoch seconds).
+    - end_time: End of the time interval (epoch seconds).
     """
-    # Load CSV data
-    df = pd.read_csv(csv_file)
+    # Load network data
+    df = pd.read_csv(input_csv)
 
-    # Filter data for the given SourceIP-DestPort pair
-    filtered_df = df[
-        (df["SourceIP"] == source_ip) &
-        (df["DestinationPort"] == dest_port)
-    ]
+    # Load the sorted associations and take the top 5
+    associations_df = pd.read_csv(associations_csv).head(5)
 
-    # Convert epoch time to datetime with fine granularity
-    filtered_df["FormattedTime"] = pd.to_datetime(filtered_df["Time"], unit="s")
+    print(associations_df.columns)
 
-    # Ensure the data is sorted chronologically
-    filtered_df = filtered_df.sort_values("FormattedTime")
+    # Convert epoch time to datetime
+    df["FormattedTime"] = pd.to_datetime(df["Time"], unit="s")
 
-    # Plot the data
-    plt.figure(figsize=(12, 6))
-    plt.plot(
-        filtered_df["FormattedTime"],
-        filtered_df["Length"],
-        marker="o",
-        linestyle="-",
-        label=f"{source_ip} -> DestPort: {dest_port}"
-    )
+    # Set up the plot
+    plt.figure(figsize=(14, 8))
 
-    # Customize x-axis ticks for finer resolution
-    plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter("%H:%M:%S.%f"))
+    # Iterate over the top associations and plot data
+    for _, row in associations_df.iterrows():
+        source_ip = row["SourceIP"]
+        dest_ip = row["DestinationIP"]
+        source_port = row["SourcePort"]
+        dest_port = row["DestinationPort"]
+
+        # Filter the data for the specific association and time range
+        filtered_df = df[
+            (df["SourceIP"] == source_ip) &
+            (df["DestinationIP"] == dest_ip) &
+            (df["SourcePort"] == source_port) &
+            (df["DestinationPort"] == dest_port) &
+            (df["Time"] >= start_time) &
+            (df["Time"] <= end_time)
+        ]
+
+        # Aggregate packet lengths by minute
+        filtered_df.set_index("FormattedTime", inplace=True)
+        aggregated_df = filtered_df.resample("1min").sum()["Length"]
+
+        # Plot the aggregated data
+        plt.plot(
+            aggregated_df.index,
+            aggregated_df.values,
+            marker="o",
+            linestyle="-",
+            label=f"{source_ip}:{source_port} -> {dest_ip}:{dest_port}"
+        )
+
+    # Customize the x-axis
+    plt.gca().xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter("%H:%M"))
     plt.xticks(rotation=45, fontsize=10)
 
     # Plot settings
-    plt.title(f"Chronological Plot for SourceIP: {source_ip} and DestPort: {dest_port}")
-    plt.xlabel("Time (hh:mm:ss.ms)")
-    plt.ylabel("Packet Length (Bytes)")
+    plt.title("Packet Length Aggregation (by Minute) for Top Associations")
+    plt.xlabel("Time (hh:mm)")
+    plt.ylabel("Total Packet Length (Bytes)")
     plt.grid(True)
     plt.legend()
     plt.tight_layout()
@@ -51,8 +72,9 @@ def plot_sourceip_destport(csv_file, source_ip, dest_port):
     plt.show()
 
 # Example Usage
-csv_file = "28_06_1000-1330.csv"  # Replace with the path to your CSV file
-source_ip = "192.168.0.2"  # Replace with the desired SourceIP
-dest_port = 9339  # Replace with the desired DestinationPort
+input_csv = "test.csv"  # Replace with your network data CSV file
+associations_csv = "sorted_associations.csv"  # Replace with your sorted associations CSV file
+start_time = 1719561000  # Replace with desired start time in epoch seconds
+end_time = 1719583200  # Replace with desired end time in epoch seconds
 
-plot_sourceip_destport(csv_file, source_ip, dest_port)
+plot_top_associations(input_csv, associations_csv, start_time, end_time)
