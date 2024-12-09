@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
 import pytz
 
-def plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, start_time, end_time):
+def plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, source_port, start_time, end_time):
     """
     Plot network data for multiple SourceIP-DestPort pairs within a user-defined time interval,
     aggregating packets by the minute.
@@ -25,22 +25,41 @@ def plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, start_time
     df["FormattedTime"] = df["FormattedTime"].dt.tz_convert(target_tz)
 
     # Filter data for the given SourceIP-DestPort pairs and time range
-    filtered_df = df[
+    filtered_df_out = df[
         (df["SourceIP"].isin(source_ips)) &
         (df["DestinationPort"] == dest_port) &
         (df["Time"] >= start_time) &
         (df["Time"] <= end_time)
     ]
 
-    if filtered_df.empty:
+    filtered_df_in = df[
+        (df["DestinationIP"].isin(source_ips)) &
+        (df["SourcePort"] == dest_port) &
+        (df["Time"] >= start_time) &
+        (df["Time"] <= end_time)
+    ]
+
+    if filtered_df_out.empty:
+        print("No matching data found for the given criteria.")
+        return
+    
+    if filtered_df_in.empty:
         print("No matching data found for the given criteria.")
         return
 
     # Aggregate packet lengths by minute
-    filtered_df.set_index("FormattedTime", inplace=True)
-    aggregated_df = (
-        filtered_df.groupby("SourceIP")["Length"]
+    filtered_df_out.set_index("FormattedTime", inplace=True)
+    aggregated_df_out = (
+        filtered_df_out.groupby("SourceIP")["Length"]
         .resample("1T")
+        .sum()
+        .unstack(level=0)
+    )
+
+    filtered_df_in.set_index("FormattedTime", inplace=True)
+    aggregated_df_in = (
+        filtered_df_in.groupby("DestinationIP")["Length"]
+        .resample("15s")
         .sum()
         .unstack(level=0)
     )
@@ -48,13 +67,22 @@ def plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, start_time
     # Plot the aggregated data for each SourceIP
     plt.figure(figsize=(12, 6))
     for source_ip in source_ips:
-        if source_ip in aggregated_df.columns:
+        if source_ip in aggregated_df_out.columns:
             plt.plot(
-                aggregated_df.index,
-                aggregated_df[source_ip],
+                aggregated_df_out.index,
+                aggregated_df_out[source_ip],
                 marker="o",
                 linestyle="-",
                 label=f"SourceIP: {source_ip} -> DestPort: {dest_port}"
+            )
+    for destination_ip in destination_ips:
+        if destination_ip in aggregated_df_in.columns:
+            plt.plot(
+                aggregated_df_in.index,
+                aggregated_df_in[destination_ip],
+                marker="o",
+                linestyle="-",
+                label=f"DestinationIP: {destination_ip} <- DestPort: {source_port}"
             )
 
     # Customize the x-axis
@@ -76,11 +104,15 @@ def plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, start_time
 
 
 # Example Usage
-csv_file = "28_06_1000-1330.csv"  # Replace with your CSV file path
-source_ips = ["192.168.0.2", "192.168.0.13", "192.168.0.25", "192.168.0.29",
-              "192.168.0.44", "192.168.0.48", "192.168.0.50", "192.168.0.51"]  # Replace with desired SourceIPs
+#csv_file = "csv/28_06_1000-1330.csv"  # Replace with your CSV file path
+csv_file = "test.csv"
+#source_ips = ["192.168.0.2", "192.168.0.13", "192.168.0.25", "192.168.0.29",
+#              "192.168.0.44", "192.168.0.48", "192.168.0.50", "192.168.0.51"]  # Replace with desired SourceIPs
+source_ips = ["192.168.0.2"]
+destination_ips = source_ips
 dest_port = 9339  # Replace with desired DestinationPort
-start_time = 1719655200  # Replace with desired start time in epoch seconds
-end_time = 1719679600  # Replace with desired end time in epoch seconds
+source_port = dest_port
+start_time = 1719640800  # Replace with desired start time in epoch seconds
+end_time = 1719658800  # Replace with desired end time in epoch seconds
 
-plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, start_time, end_time)
+plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, source_port, start_time, end_time)

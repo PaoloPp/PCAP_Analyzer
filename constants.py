@@ -1,2 +1,3 @@
 PCAP_DIR = "PCAP/"
+CSV_DIR = "csv/"
 IP_PREFIX = "192.168.0."

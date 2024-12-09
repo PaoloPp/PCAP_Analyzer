@@ -22,6 +22,21 @@ def main():
     print("Pcap directory: " + c.PCAP_DIR)
     print("Scapy Version: " + str(scapy.__version__))
     print("Python Version: " + str(sys.version))
+    create_data_payload_csv(c.PCAP_DIR + "29_06_1330-1830.pcap",
+                            c.CSV_DIR + "29_06_1330-1830_metadata.csv",
+                            c.CSV_DIR + "29_06_1330-1830_payload.csv")
+    
+    create_data_payload_csv(c.PCAP_DIR + "29_06_1000-1330.pcap",
+                            c.CSV_DIR + "29_06_1000-1330_metadata.csv",
+                            c.CSV_DIR + "29_06_1000-1330_payload.csv")
+    
+    create_data_payload_csv(c.PCAP_DIR + "28_06_1330-1830.pcap",
+                            c.CSV_DIR + "28_06_1330-1830_metadata.csv",
+                            c.CSV_DIR + "28_06_1330-1830_payload.csv")
+    
+    #create_data_payload_csv(c.PCAP_DIR + "28_06_1000-1330.pcap",
+    #                        c.CSV_DIR + "28_06_1000-1330_metadata.csv",
+    #                        c.CSV_DIR + "28_06_1000-1330_payload.csv")
 
 def extract_dns_pckt():
 
@@ -177,6 +192,67 @@ def create_data_csv(_pcap, output_csv):
     finally:
         cap.close()  # Ensure file is properly closed
 
+
+def create_data_payload_csv(_pcap, _metadata_csv, _payload_csv):
+    metadata_columns = [
+        "Time", "No", "SourceIP", "DestinationIP", 
+        "SourcePort", "DestinationPort", "SequenceNumber", 
+        "AcknowledgementNumber", "Protocol", "Length"
+    ]
+    payload_columns = ["No", "Length", "Payload"]
+
+    # Open output CSV and write headers
+    with open(_metadata_csv, 'w') as f:
+        pd.DataFrame(columns=metadata_columns).to_csv(f, index=False)
+
+    with open(_payload_csv, 'w') as f:
+        pd.DataFrame(columns=payload_columns).to_csv(f, index=False)
+
+    try:
+        cap = PcapReader(_pcap)  # Use PcapReader for streaming packets
+    except FileNotFoundError:
+        print("Error: File not found.")
+        return
+
+    pckt_no = 0
+
+    try:
+        metadata_chunk = []  # Buffer to store rows temporarily
+        payload_chunk = []  
+        chunk_size = 1000  # Adjust based on memory
+        for pckt in cap:
+            pckt_no += 1
+            pckt_metadata, pckt_payload = process_metadata_payload(pckt, pckt_no)
+
+            # Ensure no None values and force integers where needed
+            pckt_metadata_clean = {k: int(v) if isinstance(v, (int, float)) and v is not None else v for k, v in pckt_metadata.items()}
+            pckt_payload_clean = {k: int(v) if isinstance(v, (int, float)) and v is not None else v for k, v in pckt_payload.items()}
+
+            metadata_chunk.append(pckt_metadata_clean)
+            payload_chunk.append(pckt_payload_clean)
+
+            if len(metadata_chunk) >= chunk_size:
+                # Write chunk to CSV
+                write_chunk_to_csv(metadata_chunk, _metadata_csv)
+                metadata_chunk = []  # Clear buffer
+
+            if len(payload_chunk) >= chunk_size:
+                # Write chunk to CSV
+                write_chunk_to_csv(payload_chunk, _payload_csv)
+                payload_chunk = []  # Clear buffer
+
+            if pckt_no % 10000 == 0:  # Periodic logging
+                print(f"Processed {pckt_no} packets")
+
+        # Write remaining packets in the buffer
+        if metadata_chunk:
+            write_chunk_to_csv(metadata_chunk, _metadata_csv)
+        if payload_chunk:
+            write_chunk_to_csv(payload_chunk, _payload_csv)
+
+    finally:
+        cap.close()  # Ensure file is properly closed
+
 def process_data_pckt(_pckt, _no):
     pckt_data = {}
     pckt_data = {
@@ -217,6 +293,43 @@ def process_pckt(_pckt, _no):
             "Load": base64.b64encode(_pckt["Raw"].load).decode('utf-8') if _pckt.haslayer('Raw') else ""
         }
     return pckt_data
+
+def process_metadata_payload(_pckt, _no):
+    pckt_metadata = {}
+    pckt_payload = {}
+    if _pckt.haslayer('TCP'):
+        pckt_metadata = {
+            "Time": int(_pckt.time),
+            "No": _no,
+            "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else "",
+            "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else "",
+            "SourcePort": int(_pckt["TCP"].sport) if _pckt.haslayer('TCP') else 0,
+            "DestinationPort": int(_pckt["TCP"].dport) if _pckt.haslayer('TCP') else 0,
+            "SequenceNumber": int(_pckt["TCP"].seq) if _pckt.haslayer('TCP') else 0,
+            "AcknowledgementNumber": int(_pckt["TCP"].ack) if _pckt.haslayer('TCP') else 0,
+            "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else "",
+            "Length": int(_pckt["IP"].len) if _pckt.haslayer('IP') else 0,
+        }
+    elif _pckt.haslayer('UDP'):
+        pckt_metadata = {
+            "Time": int(_pckt.time),
+            "No": _no,
+            "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else "",
+            "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else "",
+            "SourcePort": int(_pckt["UDP"].sport) if _pckt.haslayer('UDP') else 0,
+            "DestinationPort": int(_pckt["UDP"].dport) if _pckt.haslayer('UDP') else 0,
+            "SequenceNumber": 0,  # TCP-only field
+            "AcknowledgementNumber": 0,  # TCP-only field
+            "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else "",
+            "Length": int(_pckt["IP"].len) if _pckt.haslayer('IP') else 0,
+        }
+    pckt_payload = {
+            "No": _no,
+            "Length": int(_pckt["IP"].len) if _pckt.haslayer('IP') else 0,
+            "Load": base64.b64encode(_pckt["Raw"].load).decode('utf-8') if _pckt.haslayer('Raw') else ""
+        }
+    
+    return pckt_metadata, pckt_payload
 
 def write_chunk_to_csv(chunk, output_csv):
     # Write processed chunk to CSV, ensuring integers are written properly
