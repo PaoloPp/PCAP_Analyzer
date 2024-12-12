@@ -24,17 +24,17 @@ def main():
     #                        c.CSV_DIR + "28_06_1000-1330_metadata.csv",
     #                        c.CSV_DIR + "28_06_1000-1330_payload.csv")
     
-    create_data_payload_csv(c.PCAP_DIR + "28_06_1330-1830.pcap",
-                            c.CSV_DIR + "28_06_1330-1830_metadata.csv",
-                            c.CSV_DIR + "28_06_1330-1830_payload.csv")
-    
-    create_data_payload_csv(c.PCAP_DIR + "29_06_1330-1830.pcap",
-                            c.CSV_DIR + "29_06_1330-1830_metadata.csv",
-                            c.CSV_DIR + "29_06_1330-1830_payload.csv")
-    
-    create_data_payload_csv(c.PCAP_DIR + "29_06_1000-1330.pcap",
-                            c.CSV_DIR + "29_06_1000-1330_metadata.csv",
-                            c.CSV_DIR + "29_06_1000-1330_payload.csv")
+    #create_data_payload_csv(c.PCAP_DIR + "28_06_1330-1830.pcap",
+    #                        c.CSV_DIR + "28_06_1330-1830_metadata.csv",
+    #                        c.CSV_DIR + "28_06_1330-1830_payload.csv")
+    #
+    #create_data_payload_csv(c.PCAP_DIR + "29_06_1330-1830.pcap",
+    #                        c.CSV_DIR + "29_06_1330-1830_metadata.csv",
+    #                        c.CSV_DIR + "29_06_1330-1830_payload.csv")
+    #
+    #create_data_payload_csv(c.PCAP_DIR + "29_06_1000-1330.pcap",
+    #                        c.CSV_DIR + "29_06_1000-1330_metadata.csv",
+    #                        c.CSV_DIR + "29_06_1000-1330_payload.csv")
 
 
 def extract_dns_pckt():
