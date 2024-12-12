@@ -3,10 +3,7 @@ import sys
 import os
 import constants as c
 import time
-import smtplib
 import base64
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 import pandas as pd
 
 protocol_mapping = {
@@ -22,6 +19,15 @@ def main():
     print("Pcap directory: " + c.PCAP_DIR)
     print("Scapy Version: " + str(scapy.__version__))
     print("Python Version: " + str(sys.version))
+
+    #create_data_payload_csv(c.PCAP_DIR + "28_06_1000-1330.pcap",
+    #                        c.CSV_DIR + "28_06_1000-1330_metadata.csv",
+    #                        c.CSV_DIR + "28_06_1000-1330_payload.csv")
+    
+    create_data_payload_csv(c.PCAP_DIR + "28_06_1330-1830.pcap",
+                            c.CSV_DIR + "28_06_1330-1830_metadata.csv",
+                            c.CSV_DIR + "28_06_1330-1830_payload.csv")
+    
     create_data_payload_csv(c.PCAP_DIR + "29_06_1330-1830.pcap",
                             c.CSV_DIR + "29_06_1330-1830_metadata.csv",
                             c.CSV_DIR + "29_06_1330-1830_payload.csv")
@@ -29,14 +35,7 @@ def main():
     create_data_payload_csv(c.PCAP_DIR + "29_06_1000-1330.pcap",
                             c.CSV_DIR + "29_06_1000-1330_metadata.csv",
                             c.CSV_DIR + "29_06_1000-1330_payload.csv")
-    
-    create_data_payload_csv(c.PCAP_DIR + "28_06_1330-1830.pcap",
-                            c.CSV_DIR + "28_06_1330-1830_metadata.csv",
-                            c.CSV_DIR + "28_06_1330-1830_payload.csv")
-    
-    #create_data_payload_csv(c.PCAP_DIR + "28_06_1000-1330.pcap",
-    #                        c.CSV_DIR + "28_06_1000-1330_metadata.csv",
-    #                        c.CSV_DIR + "28_06_1000-1330_payload.csv")
+
 
 def extract_dns_pckt():
 
@@ -93,18 +92,12 @@ def extract_pcap(file_name):
                         print(packet.summary())
                         filtered_pckts.append(packet)
             write_file.write(filtered_pckts)
-    
-#
-#        wrpcap(c.PCAP_DIR + current_ip +
-#               "/29_06_1330-1830" + "_" + current_ip + ".pcap",
-#               filtered, append=True)
 
 
 def open_pcap(name):
     print("Opening PCAP file: " + name)
     cap = PcapReader(name)
     return cap
-
 
 
 def create_csv(_pcap, output_csv):
