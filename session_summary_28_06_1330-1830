@@ -1,0 +1,31 @@
+ClashRoyale
+                               Metric                Value
+                            Time span                5.5 h
+            Client-to-server messages               165706
+            Server-to-client messages               173906
+                    Observed sessions                 1274
+  Session duration(s) (avg/med/stdev)  5010.3/845.0/6141.8
+     Msgs per session (avg/med/stdev)     266.6/94.0/477.1
+               Bit rates (KBps) (avg)                  5.2
+                    Log size in total            100.46 MB
+
+                               Metric                Value
+                            Time span                5.5 h
+            Client-to-server messages               165706
+            Server-to-client messages               173906
+                    Observed sessions                  640
+  Session duration(s) (avg/med/stdev)  5010.3/845.0/6141.8
+     Msgs per session (avg/med/stdev)     266.6/94.0/477.1
+               Bit rates (KBps) (avg)                  5.2
+              Total volume of traffic            100.46 MB
+                
+Chess
+                              Metric                Value
+                            Time span                5.5 h
+            Client-to-server messages               115446
+            Server-to-client messages                81639
+                    Observed sessions                 1301
+  Session duration(s) (avg/med/stdev)  4359.7/729.0/5309.9
+     Msgs per session (avg/med/stdev)     151.5/35.0/413.6
+               Bit rates (KBps) (avg)                  4.6
+              Total volume of traffic             88.16 MB
