@@ -78,12 +78,6 @@ def plot_top_associations(input_csv, associations_csv, start_time, end_time):
     # Show the plot
     plt.show()
 
-# Example Usage
-input_csv = "test.csv"  # Replace with your network data CSV file
-associations_csv = "sorted_associations.csv"  # Replace with your sorted associations CSV file
-start_time = 1719561000  # Replace with desired start time in epoch seconds
-end_time = 1719583200  # Replace with desired end time in epoch seconds
-
 def plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, source_port, start_time, end_time):
     """
     Plot network data for multiple SourceIP-DestPort pairs within a user-defined time interval,

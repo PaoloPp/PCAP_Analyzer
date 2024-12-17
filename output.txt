@@ -1,7 +1,0 @@
-Hello World!
-Pcap directory: PCAP/
-Scapy Version: 2.5.0
-Python Version: 3.12.4 (main, Jun  6 2024, 18:26:44) [Clang 15.0.0 (clang-1500.3.9.4)]
-Opening PCAP file: 28_06_1000-1330.pcap
-Time taken to open PCAP file: 0.00015799999999999148
-Extracting IP: 192.168.0.1
