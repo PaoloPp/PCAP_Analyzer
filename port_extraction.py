@@ -46,4 +46,4 @@ def extract_unique_ports_with_ip_filter(input_csv, output_csv, ip_list):
 input_csv = "test.csv"
 output_csv = "unique_ports.csv"
 #extract_unique_ports(input_csv, output_csv)
-extract_unique_ports_with_ip_filter(input_csv, output_csv, g.CHESS)
+extract_unique_ports_with_ip_filter(input_csv, output_csv, ["192.168.0.33"])

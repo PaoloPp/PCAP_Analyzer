@@ -56,6 +56,37 @@ def substitute_ips_for_sublists(input_csv, output_csv, ip_sublists_with_subs):
     data.to_csv(output_csv, index=False)
     print(f"Modified CSV saved to {output_csv}")
 
+def substitute_ips_for_sublists_chunked(input_csv, output_csv, ip_sublists_with_subs, chunksize=10000):
+    """
+    Substitutes IPs for DestinationIP and SourceIP based on a list of sublists with specific substitution IPs,
+    optimized for large files using chunked processing.
+
+    Parameters:
+    - input_csv: Path to the input CSV file.
+    - output_csv: Path to save the modified CSV file.
+    - ip_sublists_with_subs: List of tuples where each tuple contains a sublist of IPs and a substitution IP.
+    - chunksize: Number of rows to process per chunk.
+    """
+    # Flatten sublists and create a mapping dictionary
+    ip_to_substitute = {}
+    for ip_sublist, substitute_ip in ip_sublists_with_subs:
+        for ip in ip_sublist:
+            ip_to_substitute[ip] = substitute_ip
+
+    # Open the output file for writing and write the header
+    with pd.read_csv(input_csv, chunksize=chunksize) as reader, open(output_csv, 'w') as writer:
+        for i, chunk in enumerate(reader):
+            # Apply substitution logic to each chunk
+            chunk["SourceIP"] = chunk["SourceIP"].apply(lambda ip: ip_to_substitute.get(ip, ip))
+            chunk["DestinationIP"] = chunk["DestinationIP"].apply(lambda ip: ip_to_substitute.get(ip, ip))
+
+            # Write to the output file
+            chunk.to_csv(writer, index=False, header=(i == 0))  # Write header only for the first chunk
+
+            print(f"Processed chunk {i+1}")
+
+    print(f"Modified CSV saved to {output_csv}")
+
 # Example usage
 input_csv = "test.csv"  # Path to the input CSV file
 output_csv = "modified_network_data.csv"  # Path to save the modified CSV
