@@ -75,8 +75,15 @@ def generate_summary_table(csv_file, ip_list):
     summary_table = pd.DataFrame(summary_data.items(), columns=['Metric', 'Value'])
     return summary_table
 
-# Example usage
-csv_file = "test.csv"  # Replace with your file path
-ip_list = ["192.168.0.48", "54.201.26.66"]  # Replace with your IP list
-summary_table = generate_summary_table(csv_file, g.CLASH_ROYALE)
-print(summary_table)
+#summary_table = generate_summary_table("csv/28_06_1000-1330_metadata.csv", g.CLASH_ROYALE)
+#print(summary_table)
+#summary_table = generate_summary_table("csv/28_06_1000-1330_metadata.csv", g.ROCKET_LEAGUE)
+#print(summary_table)
+#summary_table = generate_summary_table("csv/28_06_1000-1330_metadata.csv", g.EAFC)
+#print(summary_table)
+#summary_table = generate_summary_table("csv/28_06_1000-1330_metadata.csv", g.CHESS)
+#print(summary_table)
+#summary_table = generate_summary_table("csv/28_06_1000-1330_metadata.csv", g.BRAWLHALLA)
+#print(summary_table)
+#summary_table = generate_summary_table("csv/28_06_1000-1330_metadata.csv", g.MGMT)
+#print(summary_table)

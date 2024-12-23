@@ -32,6 +32,39 @@ def extract_pcap(file_name):
                         filtered_pckts.append(packet)
             write_file.write(filtered_pckts)
 
+def extract_pcap(_pcap, output_pcap, stop_timestamp):
+    """
+    Extract packets from a PCAP file and write to a new PCAP file, stopping at a specified timestamp.
+
+    Parameters:
+    - _pcap: Input PCAP file path.
+    - output_pcap: Output PCAP file path.
+    - stop_timestamp: Epoch timestamp to stop processing packets.
+    """
+    cap = fm.open_pcap(_pcap)
+    writer = PcapWriter(output_pcap, append=True, sync=True)
+
+    pckt_no = 0
+
+    try:
+        for pckt in cap:
+            # Stop processing if packet timestamp exceeds stop_timestamp
+            if pckt.time > stop_timestamp:
+                print(f"Stopping processing as packet timestamp {pckt.time} exceeds stop_timestamp {stop_timestamp}")
+                break
+
+            pckt_no += 1
+            writer.write(pckt)
+
+            if pckt_no % 10000 == 0:  # Periodic logging
+                print(f"Processed {pckt_no} packets")
+
+    finally:
+        cap.close()  # Ensure the input file is properly closed
+        writer.close()  # Ensure the output file is properly closed
+
+    print(f"Finished writing to {output_pcap}. Total packets written: {pckt_no}")
+
 def extract_dns_pckt():
 
     dns_pckt = []
