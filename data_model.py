@@ -136,7 +136,7 @@ def create_data_payload_csv(_pcap, _metadata_csv, _payload_csv):
     finally:
         cap.close()  # Ensure file is properly closed
 
-def create_data_payload_csv(_pcap, _metadata_csv, _payload_csv, stop_timestamp):
+def create_data_payload_csv_timed(_pcap, _metadata_csv, _payload_csv, stop_timestamp):
     metadata_columns = [
         "Time", "No", "SourceIP", "DestinationIP", 
         "SourcePort", "DestinationPort", "SequenceNumber", 
