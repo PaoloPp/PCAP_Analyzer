@@ -52,8 +52,6 @@ PCAP\_Analyzer is a Python-based framework developed for the UPSIDE project to a
   - Configure anonymization settings in `anonymization.py`.
 - **Game Traffic Analysis**:
   - Update game-related IP addresses or ports in `Games_IP.xlsx`.
-- **Session Summarization**:
-  - Modify session parameters in `summary.py`.
 
 ## Function Descriptions
 
