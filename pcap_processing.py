@@ -4,8 +4,6 @@ import time
 import constants as c
 import file_mgmt as fm
 
-
-
 def extract_pcap(file_name):    
     start = time.process_time()
 

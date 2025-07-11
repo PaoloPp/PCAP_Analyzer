@@ -1,10 +1,42 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.dates import DateFormatter
 import pytz
 from datetime import datetime
 import constants as c
 import os
+
+def plot_packet_length_over_time(filename, title):
+    """Plot packet length over time from a CSV file containing network data.
+    """
+    df = pd.read_csv(filename)
+
+    # 2. Filter out placeholder/invalid rows (e.g. Time == 0)
+    # 2. Filter out placeholder/invalid rows (e.g. Time == 0)
+    df = df[df['Time'] > 0]
+
+    # 3. Convert the Time column (epoch seconds) to datetime
+    df['Time'] = pd.to_datetime(df['Time'], unit='s', origin='unix')
+
+    # 4. Set the datetime as the index (needed for resampling)
+    df.set_index('Time', inplace=True)
+
+    # 5. Resample into 1-minute intervals, summing packet lengths
+    bytes_per_minute = df['Length'].resample('1T').sum()
+
+    # Convert to kilobytes
+    mb_per_minute = bytes_per_minute / (1024 * 1024)
+
+    # Plot in kB
+    plt.figure(figsize=(10, 4))
+    plt.plot(mb_per_minute.index, mb_per_minute.values, linewidth=1)
+    plt.xlabel('Time')
+    plt.ylabel('Total Packet Length per Minute (mB)')
+    plt.title(f'Network Usage: mB per 1-Minute Interval - {title}')
+    plt.gcf().autofmt_xdate()
+    plt.tight_layout()
+    plt.show()
 
 def plot_top_associations(input_csv, associations_csv, start_time, end_time):
     """
@@ -188,14 +220,25 @@ def save_plot(_plt):
 
 # Example Usage
 #csv_file = "csv/28_06_1000-1330.csv"  # Replace with your CSV file path
-csv_file = "test.csv"
+#csv_file = "csv/28_06_1000-1330_metadata_anon.csv"
 #source_ips = ["192.168.0.2", "192.168.0.13", "192.168.0.25", "192.168.0.29",
 #              "192.168.0.44", "192.168.0.48", "192.168.0.50", "192.168.0.51"]  # Replace with desired SourceIPs
-source_ips = ["192.168.0.2"]
-destination_ips = source_ips
-dest_port = 9339  # Replace with desired DestinationPort
-source_port = dest_port
-start_time = 1719561600  # Replace with desired start time in epoch seconds
-end_time = 1719567310  # Replace with desired end time in epoch seconds
+#source_ips = ["192.168.0.2", "192.168.0.44"]
+#destination_ips = source_ips
+#dest_port = 9339  # Replace with desired DestinationPort
+#source_port = dest_port
+#start_time = 1719561500  # Replace with desired start time in epoch seconds
+#end_time = 1719570600  # Replace with desired end time in epoch seconds
 
-plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, source_port, start_time, end_time)
+#plot_multiple_sourceips_destport(csv_file, source_ips, dest_port, source_port, start_time, end_time)
+csv_file = "/Users/paolopalmiero/Documents/Uni/Tesi/Data/clash_traffic_28_06am.csv"
+plot_packet_length_over_time(csv_file, "Clash Traffic 28 June AM")
+
+csv_file = "/Users/paolopalmiero/Documents/Uni/Tesi/Data/clash_traffic_28_06pm.csv"
+plot_packet_length_over_time(csv_file, "Clash Traffic 28 June PM")
+
+csv_file = "/Users/paolopalmiero/Documents/Uni/Tesi/Data/clash_traffic_29_06am.csv"
+plot_packet_length_over_time(csv_file, "Clash Traffic 29 June AM")
+
+csv_file = "/Users/paolopalmiero/Documents/Uni/Tesi/Data/clash_traffic_29_06pm.csv"
+plot_packet_length_over_time(csv_file, "Clash Traffic 29 June PM")

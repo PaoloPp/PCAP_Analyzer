@@ -79,6 +79,5 @@ def process_metadata_payload(_pckt, _no):
     
     return pckt_metadata, pckt_payload
 
-
 def get_protocol_name(protocol_number):
     return c.protocol_mapping.get(protocol_number, "Unknown")
