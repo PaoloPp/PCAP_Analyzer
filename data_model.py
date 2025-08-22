@@ -287,10 +287,13 @@ def create_metadata_csv(_pcap, _metadata_csv, stop_timestamp):
             pckt_metadata = process_metadata_payload(pckt, pckt_no)
 
             # Ensure no None values and force integers where needed
-            pckt_metadata_clean = {k: int(v) if isinstance(v, (int, float)) and v is not None else v for k, v in pckt_metadata.items()}
+            #pckt_metadata_clean = {k: int(v) if isinstance(v, (int, float)) and v is not None else v for k, v in pckt_metadata.items()}
 
-            if pckt_metadata_clean:
-                metadata_chunk.append(pckt_metadata_clean)
+            #if pckt_metadata_clean:
+            #    metadata_chunk.append(pckt_metadata_clean)
+            #else: pckt_no -= 1
+            if pckt_metadata:
+                metadata_chunk.append(pckt_metadata)
             else: pckt_no -= 1
 
             if len(metadata_chunk) >= chunk_size:
@@ -309,10 +312,13 @@ def create_metadata_csv(_pcap, _metadata_csv, stop_timestamp):
         cap.close()  # Ensure file is properly closed
 
 def write_chunk_to_csv(chunk, output_csv):
-    # Write processed chunk to CSV, ensuring integers are written properly
-    df = pd.DataFrame(chunk)
-    numeric_columns = ["Time", "No", "SourcePort", "DestinationPort", "SequenceNumber", "AcknowledgementNumber", "Length"]
-    for col in numeric_columns:
+    df = pd.DataFrame(chunk).astype({"Time": "float64"})
+
+    # All numeric columns except Time should be integers
+    int_columns = ["No", "SourcePort", "DestinationPort", "SequenceNumber", "AcknowledgementNumber", "Length"]
+    for col in int_columns:
         if col in df.columns:
             df[col] = df[col].fillna(0).astype(int)
-    df.to_csv(output_csv, mode='a', index=False, header=False)
+
+    # Keep Time as float with 6 decimals
+    df.to_csv(output_csv, mode='a', header=False, index=False, float_format="%.6f")

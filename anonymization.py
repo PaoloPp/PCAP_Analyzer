@@ -176,6 +176,106 @@ def anonymize_ip_by_subnet(input_pcap, output_pcap, tracking_file, ip_groups):
     print(f"Tracking data saved to {tracking_file}")
 
 
+def anonymize_ip_by_subnet_csv(
+    input_csv,
+    output_csv,
+    tracking_file="ip_replacements.csv",
+    ip_groups = [],
+    src_col="SourceIP",
+    dst_col="DestinationIP",
+    default_subnet="10.0.0.0/8"
+):
+    """
+    Anonymizes *public* IPs in a CSV based on private IP groups -> replacement subnets.
+
+    Parameters:
+      - input_csv: path to the input CSV file.
+      - output_csv: path to write the anonymized CSV.
+      - tracking_file: path to write (PrivateIP, PublicIP, ReplacementIP) associations.
+      - ip_groups: dict { tuple/list of private IPs : "subnet/CIDR" }
+      - src_col, dst_col: column names holding source/destination IPs.
+      - default_subnet: fallback subnet if counterpart private IP isn't in ip_groups.
+    """
+    def is_public_ip(ip):
+        if not ip:
+            return False
+        try:
+            ip_obj = ipaddress.ip_address(ip)
+            return not (
+                ip_obj.is_private or ip_obj.is_loopback or
+                ip_obj.is_reserved or ip_obj.is_link_local or
+                getattr(ip_obj, "is_multicast", False)
+            )
+        except ValueError:
+            return False  # not an IP
+
+    def generate_ip_from_subnet(subnet):
+        # pick a stable-looking random host from the subnet (avoid network/broadcast for IPv4)
+        net = ipaddress.ip_network(subnet, strict=False)
+        # For both IPv4/IPv6, avoid first/last if possible
+        low = 1 if net.num_addresses > 2 else 0
+        high = net.num_addresses - 2 if net.num_addresses > 2 else net.num_addresses - 1
+        host_index = random.randint(low, max(low, high))
+        return str(net[host_index])
+
+    # Build reverse map: private_ip -> subnet
+    private_ip_to_subnet = {}
+    for private_list, subnet in ip_groups.items():
+        for pip in private_list:
+            private_ip_to_subnet[str(pip)] = subnet
+
+    ip_to_substitute = {}          # public_ip -> anonymized_ip
+    tracking_data = set()          # (PrivateIP, PublicIP, ReplacementIP)
+
+    with open(input_csv, newline="") as fin, open(output_csv, "w", newline="") as fout:
+        reader = csv.DictReader(fin)
+        fieldnames = reader.fieldnames or []
+        # Ensure src/dst columns exist (will add if missing)
+        for col in (src_col, dst_col):
+            if col not in fieldnames:
+                fieldnames.append(col)
+
+        writer = csv.DictWriter(fout, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for row in reader:
+            src_ip = row.get(src_col, "") or ""
+            dst_ip = row.get(dst_col, "") or ""
+
+            # Process SourceIP (if public)
+            if is_public_ip(src_ip):
+                if src_ip not in ip_to_substitute:
+                    # choose subnet using the counterpart private IP, if any
+                    subnet = private_ip_to_subnet.get(dst_ip, default_subnet)
+                    ip_to_substitute[src_ip] = generate_ip_from_subnet(subnet)
+                replacement_src = ip_to_substitute[src_ip]
+                # Track mapping if destination is one of the private IPs
+                if dst_ip in private_ip_to_subnet:
+                    tracking_data.add((dst_ip, src_ip, replacement_src))
+                row[src_col] = replacement_src  # write replacement
+
+            # Process DestinationIP (if public)
+            if is_public_ip(dst_ip):
+                if dst_ip not in ip_to_substitute:
+                    subnet = private_ip_to_subnet.get(src_ip, default_subnet)
+                    ip_to_substitute[dst_ip] = generate_ip_from_subnet(subnet)
+                replacement_dst = ip_to_substitute[dst_ip]
+                # Track mapping if source is one of the private IPs
+                if src_ip in private_ip_to_subnet:
+                    tracking_data.add((src_ip, dst_ip, replacement_dst))
+                row[dst_col] = replacement_dst  # write replacement
+
+            writer.writerow(row)
+
+    # Save tracking data
+    with open(tracking_file, "w", newline="") as tf:
+        tw = csv.writer(tf)
+        tw.writerow(["PrivateIP", "PublicIP", "ReplacementIP"])
+        tw.writerows(sorted(tracking_data))
+
+    print(f"Anonymized CSV saved to {output_csv}")
+    print(f"Tracking data saved to {tracking_file}")
+
 ip_groups = {
     (
         "192.168.0.2", "192.168.0.13", "192.168.0.25", "192.168.0.29", "192.168.0.33",
@@ -201,9 +301,9 @@ ip_groups = {
 }
 
 
-anonymize_ip_by_subnet("PCAP/28_06_1330-1830.pcap","PCAP/anonymized_28_06_1330-1830.pcap","csv/28_06_1330-1830_ip_replacements.csv", ip_groups)
-anonymize_ip_by_subnet("PCAP/29_06_1000-1330.pcap","PCAP/anonymized_29_06_1000-1330.pcap","csv/29_06_1000-1330_ip_replacements.csv", ip_groups)
-anonymize_ip_by_subnet("PCAP/29_06_1330-1830.pcap","PCAP/anonymized_29_06_1330-1830.pcap","csv/29_06_1330-1830_ip_replacements.csv", ip_groups)
+anonymize_ip_by_subnet_csv("metadata_28_06_1000-1330.csv", "anon_metadata_28_06_1000-1330.csv", ip_groups=ip_groups)
+#anonymize_ip_by_subnet("PCAP/29_06_1000-1330.pcap","PCAP/anonymized_29_06_1000-1330.pcap","csv/29_06_1000-1330_ip_replacements.csv", ip_groups)
+#anonymize_ip_by_subnet("PCAP/29_06_1330-1830.pcap","PCAP/anonymized_29_06_1330-1830.pcap","csv/29_06_1330-1830_ip_replacements.csv", ip_groups)
 
 # Example usage
 #ip_sublists_with_subs = [
