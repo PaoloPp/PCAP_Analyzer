@@ -1,77 +1,38 @@
-import base64
-import constants as c
+"""Legacy helpers built on top of :mod:`pcap_analyzer.packets`."""
+from __future__ import annotations
 
-def process_data_pckt(_pckt, _no):
-    pckt_data = {}
-    pckt_data = {
-        "Time": int(_pckt.time),
-        "Pckt_No": _no,
-        "Data": base64.b64encode(_pckt["Raw"].load) if _pckt.haslayer('Raw') else None
-    }
-    return pckt_data
+from typing import Dict
 
-def process_pckt(_pckt, _no):
-    pckt_data = {}
-    if _pckt.haslayer('TCP'):
-        pckt_data = {
-            "Time": int(_pckt.time),
-            "No": _no,
-            "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else "",
-            "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else "",
-            "SourcePort": int(_pckt["TCP"].sport) if _pckt.haslayer('TCP') else 0,
-            "DestinationPort": int(_pckt["TCP"].dport) if _pckt.haslayer('TCP') else 0,
-            "SequenceNumber": int(_pckt["TCP"].seq) if _pckt.haslayer('TCP') else 0,
-            "AcknowledgementNumber": int(_pckt["TCP"].ack) if _pckt.haslayer('TCP') else 0,
-            "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else "",
-            "Length": int(_pckt["IP"].len) if _pckt.haslayer('IP') else 0,
-            "Load": base64.b64encode(_pckt["Raw"].load).decode('utf-8') if _pckt.haslayer('Raw') else ""
-        }
-    elif _pckt.haslayer('UDP'):
-        pckt_data = {
-            "Time": int(_pckt.time),
-            "No": _no,
-            "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else "",
-            "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else "",
-            "SourcePort": int(_pckt["UDP"].sport) if _pckt.haslayer('UDP') else 0,
-            "DestinationPort": int(_pckt["UDP"].dport) if _pckt.haslayer('UDP') else 0,
-            "SequenceNumber": 0,  # TCP-only field
-            "AcknowledgementNumber": 0,  # TCP-only field
-            "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else "",
-            "Length": int(_pckt["IP"].len) if _pckt.haslayer('IP') else 0,
-            "Load": base64.b64encode(_pckt["Raw"].load).decode('utf-8') if _pckt.haslayer('Raw') else ""
-        }
-    return pckt_data
+from pcap_analyzer.config import DEFAULT_PROTOCOL_MAPPING
+from pcap_analyzer.packets import PacketFormatter
 
-def process_metadata_payload(_pckt, _no):
-    pckt_metadata = {}
-    if _pckt.haslayer('TCP'):
-        pckt_metadata = {
-            "Time": float(_pckt.time),
-            "No": _no,
-            "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else "",
-            "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else "",
-            "SourcePort": int(_pckt["TCP"].sport) if _pckt.haslayer('TCP') else 0,
-            "DestinationPort": int(_pckt["TCP"].dport) if _pckt.haslayer('TCP') else 0,
-            "SequenceNumber": int(_pckt["TCP"].seq) if _pckt.haslayer('TCP') else 0,
-            "AcknowledgementNumber": int(_pckt["TCP"].ack) if _pckt.haslayer('TCP') else 0,
-            "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else "",
-            "Length": int(_pckt["IP"].len) if _pckt.haslayer('IP') else 0,
-        }
-    elif _pckt.haslayer('UDP'):
-        pckt_metadata = {
-            "Time": float(_pckt.time),
-            "No": _no,
-            "SourceIP": _pckt["IP"].src if _pckt.haslayer('IP') else "",
-            "DestinationIP": _pckt["IP"].dst if _pckt.haslayer('IP') else "",
-            "SourcePort": int(_pckt["UDP"].sport) if _pckt.haslayer('UDP') else 0,
-            "DestinationPort": int(_pckt["UDP"].dport) if _pckt.haslayer('UDP') else 0,
-            "SequenceNumber": 0,  # TCP-only field
-            "AcknowledgementNumber": 0,  # TCP-only field
-            "Protocol": get_protocol_name(_pckt["IP"].proto) if _pckt.haslayer('IP') else "",
-            "Length": int(_pckt["IP"].len) if _pckt.haslayer('IP') else 0,
-        }
+_formatter = PacketFormatter(DEFAULT_PROTOCOL_MAPPING)
 
-    return pckt_metadata
 
-def get_protocol_name(protocol_number):
-    return c.protocol_mapping.get(protocol_number, "Unknown")
+def process_pckt(packet, number: int) -> Dict:
+    """Return metadata for ``packet`` if available."""
+    return _formatter.collect(packet, number).metadata or {}
+
+
+def process_data_pckt(packet, number: int) -> Dict:
+    """Return payload data for ``packet`` if available."""
+    return _formatter.collect(packet, number).data or {}
+
+
+def process_metadata_payload(packet, number: int):
+    """Return metadata and payload dictionaries for ``packet``."""
+    record = _formatter.collect(packet, number)
+    return record.metadata or {}, record.payload or {}
+
+
+def get_protocol_name(protocol_number: int | None) -> str:
+    """Return the human readable name for ``protocol_number``."""
+    return _formatter.protocol_name(protocol_number)
+
+
+__all__ = [
+    "process_pckt",
+    "process_data_pckt",
+    "process_metadata_payload",
+    "get_protocol_name",
+]

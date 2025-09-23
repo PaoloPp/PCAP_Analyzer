@@ -1,9 +1,19 @@
-from scapy.all import PcapReader
+"""Compatibility wrappers around :mod:`pcap_analyzer.io`."""
+from __future__ import annotations
 
-def open_pcap(name):
-    print("Opening PCAP file: " + name)
-    try:
-        cap = PcapReader(name)
-    except NameError:
-        print("Error: current_cap is not defined.")
-    return cap
+import logging
+from pathlib import Path
+
+from scapy.utils import PcapReader
+
+logger = logging.getLogger(__name__)
+
+
+def open_pcap(name: str | Path) -> PcapReader:
+    """Return a :class:`~scapy.utils.PcapReader` for ``name``."""
+    path = Path(name)
+    logger.info("Opening PCAP file %s", path)
+    return PcapReader(str(path))
+
+
+__all__ = ["open_pcap"]
